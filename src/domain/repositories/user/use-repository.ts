@@ -43,21 +43,31 @@ export class UserRepository implements IUserRepository {
   ): SyncPullChanges.Output {
     const lastPulledAt = new Date(input.lastPulledAt);
 
-    const created = await this.repository.find({
-      select: ['id', 'age', 'firstName', 'lastName'],
-      where: {
-        createdAt: MoreThanOrEqual(lastPulledAt),
-        deletedAt: IsNull(),
-      },
-    });
+    const created = await this.repository
+      .createQueryBuilder('user')
+      .select([
+        'id',
+        'user.id as backend_id',
+        'user.age as age',
+        'user.firstName AS first_name',
+        'user.lastName AS last_name',
+      ])
+      .where('user.createdAt >= :lastPulledAt', { lastPulledAt })
+      .andWhere('user.deletedAt IS NULL')
+      .getRawMany();
 
-    const updated = await this.repository.find({
-      select: ['id', 'age', 'firstName', 'lastName'],
-      where: {
-        updatedAt: MoreThanOrEqual(lastPulledAt),
-        deletedAt: IsNull(),
-      },
-    });
+    const updated = await this.repository
+      .createQueryBuilder('user')
+      .select([
+        'id',
+        'user.id as backend_id',
+        'user.age as age',
+        'user.firstName as first_name',
+        'user.lastName as last_name',
+      ])
+      .where('user.updatedAt >= :lastPulledAt', { lastPulledAt })
+      .andWhere('user.deletedAt IS NULL')
+      .getRawMany();
 
     const deleted = (
       await this.repository.find({
